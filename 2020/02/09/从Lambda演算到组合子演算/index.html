@@ -1,0 +1,63 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>从Lambda演算到组合子演算 | Itachi's Blog</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">从Lambda演算到组合子演算</h1><a id="logo" href="/.">Itachi's Blog</a><p class="description"></p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">从Lambda演算到组合子演算</h1><div class="post-meta">Feb 9, 2020</div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div></div></div><div class="post-content"><p>在昨天介绍了Lambda演算中的Y组合子（Y Combinator）之后，我认为展示一些你可以用组合子做的有趣的和有用的东西会比较有意思。</p>
+<p>让我们来看看三个简单的组合子：</p>
+<ul>
+<li><code>S</code>：<code>S</code>是一个函数应用组合子： <code>S = lambda x y z . (x z (y z))</code></li>
+<li><code>K</code>：<code>K</code>生成一个返回特定常数值的函数： <code>K = lambda x . (lambda y . x)</code>。 （即扔掉第二个参数，返回第一个参数）</li>
+<li><code>I</code>：恒等函数： <code>I = lambda x . x</code></li>
+</ul>
+<p>乍一看，这是一个很奇怪的组合。<code>S</code>的应用机制尤为奇怪 —— 它并不是接受两个参数<code>x</code>和<code>y</code>，并应用<code>x</code>到<code>y</code>，它除了<code>x</code>和<code>y</code>外还用到了第三个值<code>z</code>，先将<code>x</code>应用到<code>z</code>上，再将<code>y</code>应用到<code>z</code>上，最后用前者的结果应用到了后者的结果上。</p>
+<p>这是有道理的。以下各行各做了一步规约：</p>
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">S K K x = </span><br><span class="line">(<span class="name">K</span> x) (<span class="name">K</span> x) = </span><br><span class="line">x</span><br></pre></td></tr></table></figure>
+<p>噗！ 我们根本用不着<code>I</code>。我们仅用<code>S</code>和<code>K</code>就创建了<code>I</code>的等价。但是，这仅仅是个开始：事实上，我们可以只用S和K组合子，甚至一个变量都不用，创建任意lambda演算表达式的等价。</p>
+<p>例如，Y组合子可以写成：</p>
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Y = S S K (<span class="name">S</span> (<span class="name">K</span> (<span class="name">S</span> S (<span class="name">S</span> (<span class="name">S</span> S K)))) K)</span><br></pre></td></tr></table></figure>
+<p>在我们继续深入之前，有一个重要的事情要指出。我在上面说的是，使用<code>S K K</code>，我们创建了<code>I</code>的<em>等价</em>，然而它并没有规约为<code>lambda x . x</code>。</p>
+<p>到目前为止，我们说在Lambda演算中，“<code>x = y</code>”，当且仅当<code>x</code>和<code>y</code>相同，或通过Alpha转化后相同。（这样<code>lambda x y . x + y</code>等于<code>lambda a b . a + b</code> ，但不等于<code>lambda x y . y + x</code> ）这就是所谓的内涵等价(intensional equivalence) 。 然而，另一种相等也非常有用，这就是所谓的外延等价（extensional equivalence）或外延相等（extensional equality）。外延相等时，表达式<code>X</code>等于一个表达式<code>Y</code>，当且仅当<code>X</code>等同<code>Y</code>（模Alpha），或者 <code>for all a . X a = Y a</code>。</p>
+<p>从现在起，我们使用「<code>=</code>」表示外延相等。我们可以将任何 Lambda表达式转换为外延相等的组合子形式。我们定义一个从Lambda形式到组合子形式的变换函数<code>C</code>：</p>
+<ol>
+<li><code>C{x} = x</code></li>
+<li><code>C{E1 E2} = C{E1} C{E2}</code></li>
+<li><code>C{lambda x . E} = K C{E}</code>，如果<code>x</code>在<code>E</code>中非自由</li>
+<li><code>C{lambda x . x} = I</code></li>
+<li><code>C{lambda x . E1 E2} = (S C{lambda x . E1} C {lambda x . E2})</code></li>
+<li><code>C{lambda x . (lambda y . E)} = C {lambda x . C {lambda y . E}}</code>，如果<code>x</code>在<code>E</code>中是自由变量</li>
+</ol>
+<p>让我们演进一下 <code>C{lambda x y . y x}</code>：</p>
+<ul>
+<li>柯里化函数： <code>C{lambda x . (lambda y . y x)}</code></li>
+<li>根据规则6： <code>C{lambda x . C{lambda y . y x}}</code></li>
+<li>根据规则5： <code>C{lambda x . S C{lambda y . y} C{lambda y . x}}</code></li>
+<li>根据规则4： <code>C{lambda x . S I C{lambda y . x}}</code></li>
+<li>根据规则3： <code>C{lambda x . S I (K C{x})}</code></li>
+<li>通过规则1： <code>C{lambda x . S I (K x)}</code></li>
+<li>根据规则5： <code>S C{lambda x . S I} C{lambda x . (K x)}</code></li>
+<li>根据规则3： <code>S (K (S I)) C{lambda x . K x}</code></li>
+<li>根据规则5： <code>S (K (S I)) (S C{lambda x . K} C{lambda x . x})</code></li>
+<li>通过规则1： <code>S (K (S I)) (S C{lambda x . K} I)</code></li>
+<li>根据规则3： <code>S (K (S I)) (S (K K) I)</code></li>
+</ul>
+<p>现在，让我们尝试使用“<code>x</code>”和“<code>y</code>”作为参数传递给该组合子表达式，并规约：</p>
+<ul>
+<li><code>S (K (S I)) (S (K K) I) x y</code></li>
+<li>让我们创建一些别名，以方便阅读：<code>A = (K (S I)), B = (S (K K) I)</code>，所以我们的表达式现在成了：<code>S A B x y</code></li>
+<li>展开S: <code>(A x (B x)) y</code></li>
+<li>让我们去掉别名B：<code>(A x ((S (K K) I) x)) y</code></li>
+<li>现在让我们去掉S：<code>(A x ((K K) x (I x))) y</code></li>
+<li>以及I：<code>(A x ((K K) x x)) y</code></li>
+<li>规约<code>(K K) x</code> ：<code>(A x (K x)) y</code></li>
+<li>展开别名A： <code>((K (S I)) x (K x)) y</code></li>
+<li>规约<code>(K (S I)) x</code> ，得到： <code>((S I) (K x)) y</code></li>
+<li>规约S：<code>I y (K x) y</code></li>
+<li>规约I：<code>y (K x) y</code></li>
+<li>最后规约<code>(K x) y</code>，剩下：<code>y x</code></li>
+</ul>
+<p>就是这样。好玩吧？</p>
+</div><iframe src="/donate/?AliPayQR=/img/AliPayQR.png&amp;WeChatQR=null&amp;GitHub=null&amp;BTCQR=null&amp;BTCKEY=null&amp;PayPal=null" style="overflow-x:hidden; overflow-y:hidden; border:0xp none #fff; min-height:240px; width:100%;" frameborder="0" scrolling="no"></iframe><div class="tags"><a href="/tags/lambda演算/">lambda演算</a></div><div class="post-nav"><a class="pre" href="/2020/02/09/Lambda演算的类型/">Lambda演算的类型</a><a class="next" href="/2020/02/09/为什么是Y？/">为什么是Y？</a></div><div id="lv-container" data-id="city" data-uid="MTAyMC80ODEzMS8yNDYyOA=="><script>(function(d, s) {
+   var j, e = d.getElementsByTagName(s)[0];
+   if (typeof LivereTower === 'function') { return; }
+   j = d.createElement(s);
+   j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+   j.async = true;
+   e.parentNode.insertBefore(j, e);
+})(document, 'script');
+</script></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="https://itachi321.github.io"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/函数式编程/">函数式编程</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/安全协议/">安全协议</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/形式化/">形式化</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/Haskell/" style="font-size: 15px;">Haskell</a> <a href="/tags/lambda演算/" style="font-size: 15px;">lambda演算</a> <a href="/tags/tamarin/" style="font-size: 15px;">tamarin</a> <a href="/tags/形式化/" style="font-size: 15px;">形式化</a> <a href="/tags/TLS/" style="font-size: 15px;">TLS</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2020/02/09/终章，Lambda演算建模程序即证明！/">终章，Lambda演算建模程序即证明！</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/09/Lambda演算的类型/">Lambda演算的类型</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/09/从Lambda演算到组合子演算/">从Lambda演算到组合子演算</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/09/为什么是Y？/">为什么是Y？</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/09/Lambda演算中的布尔值和选择/">Lambda演算中的布尔值和选择</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/09/lambda演算中的数字/">阿隆佐.丘奇的天才之作——lambda演算中的数字</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/09/lambda演算/">我的最爱Lambda演算</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/06/17/tamarin-builtin/">tamarin Built-in message theories</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/06/17/Haskell介绍/">Haskell介绍</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/03/30/TLS1-3/">TLS1.3</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://csp.whu.edu.cn" title="珞珈之戍" target="_blank">珞珈之戍</a><ul></ul><a href="https://zhangtong16.github.io/" title="zhangtong16" target="_blank">zhangtong16</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2020 <a href="/." rel="nofollow">Itachi's Blog.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>
